@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparateur de chauffage</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<main>
+    <header>
+        <div class="header-main">
+            <h1>Comparateur chauffage : granulés vs radiateurs électriques</h1>
+            <p>
+                Ajustez les paramètres ci-dessous pour estimer vos coûts annuels, l'impact de l'évolution des prix
+                de l'énergie et le délai de rentabilité d'une chaudière neuve face aux radiateurs électriques.
+            </p>
+        </div>
+        <div class="share-actions">
+            <button type="button" id="share-button">Copier le lien de cette simulation</button>
+            <span id="share-feedback" role="status" aria-live="polite"></span>
+        </div>
+    </header>
+    <div class="content">
+        <form id="parameters" class="card">
+            <h2>Paramètres</h2>
+            <section>
+                <h3>Enveloppe &amp; puissance installée</h3>
+                <label>
+                    Surface totale chauffée (m²)
+                    <input type="number" step="0.1" name="total_area_m2">
+                </label>
+                <label>
+                    Puissance visée (W/m²)
+                    <input type="number" step="1" name="design_power_density_w_per_m2">
+                </label>
+                <label>
+                    Coût radiateurs (€/kW)
+                    <input type="number" step="1" name="radiator_cost_per_kw">
+                </label>
+                <label>
+                    Surcoût installation radiateurs (€)
+                    <input type="number" step="100" name="radiator_install_extra_cost">
+                </label>
+            </section>
+            <section>
+                <h3>Consommations actuelles</h3>
+                <label>
+                    Granulés consommés (tonnes/an)
+                    <input type="number" step="0.01" name="pellet_consumption_tonnes">
+                </label>
+                <label>
+                    Pouvoir calorifique granulés (kWh/kg)
+                    <input type="number" step="0.01" name="pellet_energy_density_kwh_per_kg">
+                </label>
+                <label>
+                    Bois consommé (stères/an)
+                    <input type="number" step="0.1" name="wood_consumption_stere">
+                </label>
+                <label>
+                    Énergie bois (kWh/stère)
+                    <input type="number" step="10" name="wood_energy_per_stere_kwh">
+                </label>
+            </section>
+            <section>
+                <h3>Rendements</h3>
+                <label>
+                    Rendement chaudière actuelle (%)
+                    <input type="number" step="0.5" name="old_boiler_efficiency_percent">
+                </label>
+                <label>
+                    Rendement chaudière neuve (%)
+                    <input type="number" step="0.5" name="new_boiler_efficiency_percent">
+                </label>
+                <label>
+                    Rendement poêle à bois (%)
+                    <input type="number" step="0.5" name="wood_stove_efficiency_percent">
+                </label>
+            </section>
+            <section>
+                <h3>Prix &amp; inflation</h3>
+                <label>
+                    Prix granulés (€/kg)
+                    <input type="number" step="0.01" name="pellet_price_per_kg">
+                </label>
+                <label>
+                    Inflation granulés (%/an)
+                    <input type="number" step="0.1" name="pellet_price_growth_rate_percent">
+                </label>
+                <label>
+                    Prix bois (€/stère)
+                    <input type="number" step="1" name="wood_price_per_stere">
+                </label>
+                <label>
+                    Inflation bois (%/an)
+                    <input type="number" step="0.1" name="wood_price_growth_rate_percent">
+                </label>
+                <label>
+                    Prix électricité (€/kWh)
+                    <input type="number" step="0.01" name="electric_price_per_kwh">
+                </label>
+                <label>
+                    Inflation électricité (%/an)
+                    <input type="number" step="0.1" name="electric_price_growth_rate_percent">
+                </label>
+                <label>
+                    Surcoût abonnement électricité (€/mois)
+                    <input type="number" step="1" name="electric_subscription_increase_per_month">
+                </label>
+                <label>
+                    Inflation abonnement (%/an)
+                    <input type="number" step="0.1" name="electric_subscription_growth_rate_percent">
+                </label>
+                <label>
+                    Entretien chaudière (€/an)
+                    <input type="number" step="10" name="maintenance_cost_per_year">
+                </label>
+                <label>
+                    Inflation entretien (%/an)
+                    <input type="number" step="0.1" name="maintenance_growth_rate_percent">
+                </label>
+            </section>
+            <section>
+                <h3>Investissement chaudière neuve</h3>
+                <label>
+                    Coût chaudière neuve (€)
+                    <input type="number" step="100" name="new_boiler_cost">
+                </label>
+            </section>
+            <section>
+                <h3>Durée d'étude</h3>
+                <label>
+                    Horizon d'analyse (années)
+                    <input type="number" step="1" min="1" max="50" name="analysis_years">
+                </label>
+            </section>
+        </form>
+
+        <section id="results" class="card">
+            <h2>Résultats</h2>
+            <div class="loading">Calcul en cours…</div>
+        </section>
+    </div>
+</main>
+
+<script>
+    const defaults = {{ defaults | tojson }};
+    const numberFormatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+    const numberFormatter2 = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 });
+    const currencyFormatter = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+    const form = document.getElementById("parameters");
+    const resultsContainer = document.getElementById("results");
+    const shareButton = document.getElementById("share-button");
+    const shareFeedback = document.getElementById("share-feedback");
+
+    const integerFields = new Set(["analysis_years"]);
+    const parameterNames = Object.keys(defaults);
+    let allowQuerySync = window.location.search.length > 0;
+
+    function initForm() {
+        parameterNames.forEach((name) => {
+            const input = form.elements.namedItem(name);
+            if (input) {
+                input.value = defaults[name];
+            }
+        });
+        applyQueryParams();
+    }
+
+    function readFormData() {
+        const formData = new FormData(form);
+        const payload = {};
+        for (const [key, value] of formData.entries()) {
+            if (value === "") {
+                continue;
+            }
+            const numericValue = Number(value);
+            if (Number.isNaN(numericValue)) {
+                payload[key] = value;
+            } else if (integerFields.has(key)) {
+                payload[key] = Math.round(numericValue);
+            } else {
+                payload[key] = numericValue;
+            }
+        }
+        return payload;
+    }
+
+    function applyQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.size === 0) {
+            return;
+        }
+        let hasApplied = false;
+        parameterNames.forEach((name) => {
+            if (!params.has(name)) {
+                return;
+            }
+            const input = form.elements.namedItem(name);
+            if (input) {
+                input.value = params.get(name);
+                hasApplied = true;
+            }
+        });
+        if (hasApplied) {
+            // ensure integer inputs respect bounds
+            integerFields.forEach((name) => {
+                const input = form.elements.namedItem(name);
+                if (input && input.value !== "") {
+                    input.value = String(Math.round(Number(input.value)));
+                }
+            });
+            allowQuerySync = true;
+        }
+    }
+
+    function serializeFormForQuery() {
+        const values = {};
+        parameterNames.forEach((name) => {
+            const input = form.elements.namedItem(name);
+            if (!input) {
+                return;
+            }
+            const value = input.value;
+            if (value === "") {
+                return;
+            }
+            const numericValue = Number(value);
+            values[name] = Number.isNaN(numericValue) ? value : numericValue;
+        });
+        return values;
+    }
+
+    function updateQueryStringFromForm() {
+        const values = serializeFormForQuery();
+        const searchParams = new URLSearchParams();
+        Object.entries(values).forEach(([name, value]) => {
+            searchParams.set(name, String(value));
+        });
+        const newQuery = searchParams.toString();
+        const currentQuery = window.location.search.startsWith("?")
+            ? window.location.search.slice(1)
+            : "";
+        if (newQuery === currentQuery) {
+            return;
+        }
+        const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
+        window.history.replaceState(null, "", newUrl);
+    }
+
+    let pendingRequest = null;
+    let debounceTimer = null;
+
+    function scheduleUpdate() {
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+        allowQuerySync = true;
+        debounceTimer = setTimeout(runCalculation, 150);
+    }
+
+    async function runCalculation() {
+        const payload = readFormData();
+        const analysisYears = payload.analysis_years || defaults.analysis_years;
+
+        if (pendingRequest) {
+            pendingRequest.abort();
+        }
+        pendingRequest = new AbortController();
+
+        resultsContainer.innerHTML = `
+            <h2>Résultats</h2>
+            <div class="loading">Calcul en cours…</div>
+        `;
+
+        try {
+            if (allowQuerySync) {
+                updateQueryStringFromForm();
+            }
+
+            const response = await fetch("/api/calculate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+                signal: pendingRequest.signal,
+            });
+
+            if (!response.ok) {
+                throw new Error("Erreur de calcul");
+            }
+
+            const data = await response.json();
+            renderResults(data, analysisYears);
+        } catch (error) {
+            if (error.name === "AbortError") {
+                return;
+            }
+            resultsContainer.innerHTML = `
+                <h2>Résultats</h2>
+                <div class="error">Impossible d'actualiser les résultats : ${error.message}</div>
+            `;
+        } finally {
+            pendingRequest = null;
+        }
+    }
+
+    function formatBreakEvenCell(cell, horizonYears) {
+        if (!cell) {
+            return { text: "n.c.", cssClass: "status-unknown" };
+        }
+
+        switch (cell.status) {
+            case "self":
+                return { text: "—", cssClass: "diagonal" };
+            case "ahead":
+                return { text: "Déjà moins cher", cssClass: "status-ahead" };
+            case "payback": {
+                const years = cell.year ?? 0;
+                const label = `${years} an${years > 1 ? "s" : ""}`;
+                return { text: label, cssClass: "status-payback" };
+            }
+            case "never":
+                return { text: `> ${horizonYears} ans`, cssClass: "status-never" };
+            default:
+                return { text: "n.c.", cssClass: "status-unknown" };
+        }
+    }
+
+    function renderResults(data, analysisYears) {
+        const { energy, scenarios, investment, break_even: breakEven, current_baseline: baseline } = data;
+
+        const energyHtml = `
+            <section>
+                <h3>Bilan énergétique</h3>
+                <ul class="summary">
+                    <li><strong>Granulés consommés :</strong> ${numberFormatter2.format(energy.pellet_mass_current_kg / 1000)} t/an (${numberFormatter.format(energy.pellet_energy_input_kwh)} kWh PCI)</li>
+                    <li><strong>Chaleur utile granulés :</strong> ${numberFormatter.format(energy.pellet_heat_delivered_kwh)} kWh/an</li>
+                    <li><strong>Chaleur utile bois :</strong> ${numberFormatter.format(energy.wood_heat_delivered_kwh)} kWh/an</li>
+                    <li><strong>Besoins totaux :</strong> ${numberFormatter.format(energy.total_heat_demand_kwh)} kWh/an</li>
+                    <li><strong>Granulés chaudière neuve + poêle :</strong> ${numberFormatter2.format(energy.pellet_mass_new_with_wood_kg / 1000)} t/an</li>
+                    <li><strong>Granulés chaudière neuve seule :</strong> ${numberFormatter2.format(energy.pellet_mass_new_without_wood_kg / 1000)} t/an</li>
+                    <li><strong>Électricité radiateurs + poêle :</strong> ${numberFormatter.format(energy.electric_needed_with_wood_kwh)} kWh/an</li>
+                    <li><strong>Électricité radiateurs seuls :</strong> ${numberFormatter.format(energy.electric_needed_total_kwh)} kWh/an</li>
+                    <li><strong>Rendements utilisés :</strong> ${numberFormatter2.format(energy.old_boiler_efficiency_percent)} % / ${numberFormatter2.format(energy.new_boiler_efficiency_percent)} % / ${numberFormatter2.format(energy.wood_stove_efficiency_percent)} %</li>
+                </ul>
+            </section>
+        `;
+
+        const baselineHtml = `
+            <section>
+                <h3>Situation actuelle</h3>
+                <ul class="summary">
+                    <li><strong>Année 1 :</strong> ${currencyFormatter.format(baseline.first_year_cost)}</li>
+                    <li><strong>Cumul ${analysisYears} ans :</strong> ${currencyFormatter.format(baseline.horizon_cost)}</li>
+                </ul>
+            </section>
+        `;
+
+        const scenarioRows = scenarios.map((scenario) => `
+            <tr>
+                <td>${scenario.name}</td>
+                <td>${currencyFormatter.format(scenario.capex)}</td>
+                <td>${currencyFormatter.format(scenario.first_year_cost)}</td>
+                <td>${currencyFormatter.format(scenario.total_horizon_cost)}</td>
+            </tr>
+        `).join("");
+
+        const breakEvenHeaderCells = breakEven.labels.map((label) => `<th scope="col">${label}</th>`).join("");
+        const breakEvenRows = breakEven.matrix.map((row, rowIndex) => {
+            const cells = row.map((cell, colIndex) => {
+                const { text, cssClass } = formatBreakEvenCell(cell, breakEven.horizon_years);
+                return `<td class="${cssClass}">${text}</td>`;
+            }).join("");
+            return `
+                <tr>
+                    <th scope="row">${breakEven.labels[rowIndex]}</th>
+                    ${cells}
+                </tr>
+            `;
+        }).join("");
+
+        const investmentHtml = `
+            <section>
+                <h3>Investissements</h3>
+                <ul class="summary">
+                    <li><strong>Puissance radiateurs :</strong> ${numberFormatter.format(investment.radiator_power_kw)} kW</li>
+                    <li><strong>Coût radiateurs :</strong> ${currencyFormatter.format(investment.radiator_capex)}</li>
+                    <li><strong>Chaudière neuve :</strong> ${currencyFormatter.format(investment.boiler_cost)}</li>
+                </ul>
+            </section>
+        `;
+
+        resultsContainer.innerHTML = `
+            <h2>Résultats</h2>
+            ${energyHtml}
+            ${baselineHtml}
+            <section>
+                <h3>Comparaison des scénarios</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scénario</th>
+                            <th>Investissement initial</th>
+                            <th>OPEX année 1</th>
+                            <th>Coût cumulé + CAPEX (${analysisYears} ans)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${scenarioRows}
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h3>Rentabilités croisées</h3>
+                <table class="break-even-table">
+                    <thead>
+                        <tr>
+                            <th>Scénario ➜</th>
+                            ${breakEvenHeaderCells}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${breakEvenRows}
+                    </tbody>
+                </table>
+                <p class="break-even-note">Chaque case indique le nombre d'années nécessaires pour que la ligne devienne moins coûteuse que la colonne (CAPEX compris). « Déjà moins cher » signifie que l'investissement initial et l'OPEX sont déjà inférieurs ; « > ${breakEven.horizon_years} ans » indique aucune rentabilité sur l'horizon étudié.</p>
+            </section>
+            ${investmentHtml}
+        `;
+    }
+
+    initForm();
+    form.addEventListener("input", scheduleUpdate);
+    shareButton.addEventListener("click", async () => {
+        const link = window.location.href;
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(link);
+                shareFeedback.textContent = "Lien copié dans le presse-papiers.";
+            } else {
+                throw new Error("Clipboard API indisponible");
+            }
+        } catch (error) {
+            const manualCopy = window.prompt("Copiez ce lien :", link);
+            if (manualCopy !== null) {
+                shareFeedback.textContent = "Lien prêt à être partagé.";
+            } else {
+                shareFeedback.textContent = "Impossible de copier le lien automatiquement.";
+            }
+        }
+        setTimeout(() => {
+            shareFeedback.textContent = "";
+        }, 4000);
+    });
+    runCalculation();
+</script>
+</body>
+</html>

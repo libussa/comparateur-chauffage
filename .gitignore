@@ -1,0 +1,27 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Tool caches
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE / editor
+.idea/
+.vscode/
+.DS_Store
+
+# Docker
+*.log
