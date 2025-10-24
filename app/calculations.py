@@ -25,10 +25,10 @@ class Parameters(BaseModel):
     electric_price_growth_rate_percent: float = Field(3.0)
     electric_subscription_increase_per_month: float = Field(10.0, ge=0)
     electric_subscription_growth_rate_percent: float = Field(3.0)
-    analysis_years: int = Field(15, ge=1, le=50)
-    new_boiler_cost: float = Field(16500.0, ge=0)
+    analysis_years: int = Field(30, ge=1, le=50)
+    new_boiler_cost: float = Field(18000.0, ge=0)
     radiator_cost_per_kw: float = Field(150.0, ge=0)
-    design_power_density_w_per_m2: float = Field(100.0, ge=0)
+    design_power_density_w_per_m2: float = Field(120.0, ge=0)
     radiator_install_extra_cost: float = Field(0.0, ge=0)
 
 
