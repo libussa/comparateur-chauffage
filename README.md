@@ -1,3 +1,5 @@
+> ⚠️ Cette application a été conçue quasi intégralement par une IA
+
 # Comparateur de chauffage
 
 Application web en une page permettant d'estimer les coûts de chauffage entre plusieurs scénarios :
