@@ -7,11 +7,10 @@ ENV PYTHONUNBUFFERED=1
 
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml ./
-
-RUN uv pip install --system --project .
-
+COPY pyproject.toml README.md ./
 COPY app ./app
+
+RUN uv pip install --system .
 
 EXPOSE 8000
 
