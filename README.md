@@ -45,13 +45,10 @@ pytest
 
 Les tests vérifient notamment les calculs énergétiques, l'application du surcoût d'abonnement électrique et les statuts de rentabilité.
 
-## Déploiement sur Render.com (sans Docker)
+## Déploiement sur Render.com (avec Docker)
 
 1. Poussez ce dépôt vers GitHub/GitLab/Bitbucket.
-2. Sur Render, créez un nouveau service Web, choisissez le dépôt, et sélectionnez l'option **Python**.
-3. Laissez Render utiliser la configuration fournie :
-   - commande de build : `pip install -r requirements.txt`
-   - commande de démarrage : `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-4. (Facultatif) Si vous préférez l'infra-as-code, conservez le fichier `render.yaml` inclus : Render le détecte automatiquement et applique les paramètres ci-dessus.
-
-> Render fournit automatiquement la variable d'environnement `PORT`. Aucun autre réglage n'est requis pour cette application.
+2. Sur Render, créez un nouveau service Web, connectez le dépôt et choisissez **Docker** comme environnement d'exécution.
+3. Render utilisera automatiquement le `Dockerfile` présent à la racine. Aucune commande de build/start supplémentaire n'est nécessaire.
+4. Conservez les valeurs par défaut pour les variables d'environnement ; la variable `PORT` fournie par Render est gérée dans l'image (`CMD` exploite `${PORT:-8000}`).
+5. Déployez : Render construira l'image, lancera Uvicorn et exposera l'app sur votre URL publique.
