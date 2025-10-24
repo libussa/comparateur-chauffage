@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comparateur de chauffage</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -316,7 +317,7 @@
             case "self":
                 return { text: "—", cssClass: "diagonal" };
             case "ahead":
-                return { text: "Déjà moins cher", cssClass: "status-ahead" };
+                return { text: "Gain immédiat", cssClass: "status-ahead" };
             case "payback": {
                 const years = cell.year ?? 0;
                 const label = `${years} an${years > 1 ? "s" : ""}`;
@@ -426,7 +427,7 @@
                         ${breakEvenRows}
                     </tbody>
                 </table>
-                <p class="break-even-note">Chaque case indique le nombre d'années nécessaires pour que la ligne devienne moins coûteuse que la colonne (CAPEX compris). « Déjà moins cher » signifie que l'investissement initial et l'OPEX sont déjà inférieurs ; « > ${breakEven.horizon_years} ans » indique aucune rentabilité sur l'horizon étudié.</p>
+                <p class="break-even-note">Chaque case indique le nombre d'années nécessaires pour que la ligne devienne moins coûteuse que la colonne (CAPEX inclus). « Gain immédiat » signifie que, dès la première année, CAPEX et OPEX de la ligne sont déjà inférieurs ; « &gt; ${breakEven.horizon_years} ans » indique aucune rentabilité sur l'horizon étudié.</p>
             </section>
             ${investmentHtml}
         `;
