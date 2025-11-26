@@ -1,5 +1,5 @@
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
     font-family: "Inter", "Segoe UI", sans-serif;
     line-height: 1.5;
     --surface: rgba(255, 255, 255, 0.9);
